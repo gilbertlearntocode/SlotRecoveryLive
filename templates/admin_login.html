@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin Login</title></head>
+<body style="background:#111;color:#fff;text-align:center;padding:200px;">
+  <h1>House View Login</h1>
+  {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+  <form method="POST">
+    Username: <input type="text" name="username"><br><br>
+    Password: <input type="password" name="password"><br><br>
+    <button type="submit">Login</button>
+  </form>
+</body>
+</html>

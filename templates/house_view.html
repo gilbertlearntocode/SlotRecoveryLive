@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>House View - The Real Math</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for RTP pie -->
+  <style>
+    body { background:#111; color:#fff; font-family:Arial; padding:20px; }
+    table { border-collapse:collapse; width:90%; max-width:1000px; margin:20px auto; }
+    th, td { border:1px solid #444; padding:10px; text-align:left; }
+    th { background:#222; }
+    .profit { color:#ff4500; font-size:24px; font-weight:bold; }
+    .note { color:#aaa; font-style:italic; }
+    .graph-container { width: 90%; max-width: 600px; margin: 40px auto; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>House View - The Math Behind the Game</h1>
+  <p class="note">This shows the real numbers: total bets placed vs total payouts made. House profit = wagered - returned. See how the edge works over time.</p>
+
+  <p class="profit">Total House Profit: {{ total_house_profit|round(2) }} credits</p>
+  <p>Total Wagered (all players): {{ total_wagered|round(2) }} credits</p>
+  <p>Total Returned (wins): {{ total_returned|round(2) }} credits</p>
+
+  <h2>Player Stats</h2>
+  <table>
+    <tr>
+      <th>Username</th>
+      <th>Balance</th>
+      <th>Total Wagered</th>
+      <th>Total Won/Returned</th>
+      <th>Total Spins</th>
+      <th>Highest Win</th>
+      <th>Net to House</th>
+    </tr>
+    {% for p in players %}
+    <tr>
+      <td>{{ p['username'] }}</td>
+      <td>{{ p['balance']|round(2) }}</td>
+      <td>{{ p['total_wagered']|round(2) }}</td>
+      <td>{{ p['total_returned']|round(2) }}</td>
+      <td>{{ p['total_spins'] }}</td>
+      <td>{{ (p['max_win']|round(2)) if p['max_win'] is number else '0.00' }}</td>
+      <td style="color:{% if p['total_wagered'] - p['total_returned'] > 0 %}#ff4500{% else %}#00ff00{% endif %};">
+        {{ (p['total_wagered'] - p['total_returned'])|round(2) }}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <!-- Cumulative RTP Graph -->
+  <div class="graph-container">
+    <h2>All Users Cumulative RTP</h2>
+    <canvas id="rtpChart" height="300"></canvas>
+    <p style="margin-top: 10px; color: #aaa;">Overall RTP: {{ all_time_rtp|round(2) }}% (House Edge: {{ 100 - all_time_rtp|round(2) }}%)</p>
+  </div>
+
+  <br>
+  <a href="/" style="color:#ff4500;">Back to Game</a>
+
+  <br><br>
+<button onclick="fullReset()" style="padding: 12px 40px; background: #ff0000; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px;">
+  FULL RESET - Wipe Everything to Zero
+</button>
+
+<script>
+function fullReset() {
+  if (!confirm('WARNING: This wipes ALL player data, balances, spins, RTP tracking — everything back to zero. No undo. Are you sure?')) return;
+
+  fetch('/full-reset', { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();  // refresh to recreate DB
+      } else {
+        alert('Error: ' + (data.error || 'Unknown'));
+      }
+    })
+    .catch(err => alert('Failed: ' + err));
+}
+</script>
+
+  <script>
+    
+    const ctx = document.getElementById('rtpChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['RTP %', 'House Edge %'],
+        datasets: [{
+          data: [{{ all_time_rtp|round(2) }}, {{ 100 - all_time_rtp|round(2) }}],
+          backgroundColor: ['#00ff00', '#ff4500'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#fff' }
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => context.label + ': ' + context.raw.toFixed(2) + '%'
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

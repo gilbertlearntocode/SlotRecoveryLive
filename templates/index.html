@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recovery Machine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      width: 90%;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px 0;
+    }
+    .slot-section {
+      flex: 1 1 300px;
+      min-width: 300px;
+      text-align: center;
+    }
+    .graphs-section {
+      flex: 1 1 400px;
+      min-width: 300px;
+    }
+    .slot-machine {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .reel {
+      width: 140px;
+      height: 180px;
+      overflow: hidden;
+      border: 5px solid #333;
+      border-radius: 16px;
+      background: #1a1a1a;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      margin: 0;
+      padding: 0;
+    }
+    .reel::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: lime;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .reel-strip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 10000%;
+      display: flex;
+      flex-direction: column;
+      transform-style: preserve-3d;
+    }
+    .symbol {
+      width: 100%;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 120px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #222, #111);
+      border-bottom: 3px solid #444;
+      backface-visibility: hidden;
+      box-sizing: border-box;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 32px;
+      font-weight: bold;
+      min-height: 50px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 18px 60px;
+      font-size: 28px;
+      background: #ff4500;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .spinning .reel-strip {
+      filter: blur(3px);
+    }
+  </style>
+</head>
+<body>
+  <div style="position: absolute; top: 10px; right: 20px; font-size: 18px;">
+    Player: <strong>{{ session.username }}</strong> | 
+    Balance: <span id="balance">{{ session.balance|round(2) }}</span>
+    <a href="/house-view" style="color:#ff4500; margin-left:20px; text-decoration:none;">See House Math</a>
+    <a href="/logout" style="color: #ff4500; margin-left: 20px; text-decoration: none;">Logout</a>
+    
+    {% if session.username == 'gilbert' %}
+      <a href="/admin" style="color: #ff4500; margin-left: 20px; text-decoration: none;">Admin Dashboard</a>
+    {% endif %}
+  </div>
+
+  <h1 style="margin: 20px 0; color: #ff4500;">Slot Recovery - See the Real Math</h1>
+  <p style="max-width: 600px; text-align: center; color: #aaa;">This is not a game to win money. It's to show how slots really work — the house always wins long-term. Play, watch the graphs, understand the trap.</p>
+
+  <div class="container">
+    <!-- Slot section (left) -->
+    <div class="slot-section">
+      <div class="slot-machine">
+        <div class="reel" id="r0"><div class="reel-strip"></div></div>
+        <div class="reel" id="r1"><div class="reel-strip"></div></div>
+        <div class="reel" id="r2"><div class="reel-strip"></div></div>
+      </div>
+
+      <div style="margin: 30px 0; font-size: 20px;">
+        Bet: <select id="betSelect">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+        </select>
+      </div>
+
+      <!-- Auto Spin Controls -->
+      <div style="margin: 20px 0;">
+        <label style="margin-right: 10px;">Auto Spins:</label>
+        <select id="autoSpinsCount">
+          <option value="0">Off</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="500">500</option>
+        </select>
+        <button id="autoSpinBtn" style="padding: 10px 20px; background: #006400; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 15px;">
+          Start Auto Spin
+        </button>
+        <span id="autoSpinStatus" style="margin-left: 15px; color: #ff4500;"></span>
+      </div>
+
+      <div id="result" style="font-size: 32px; font-weight: bold; min-height: 50px;">Press SPIN</div>
+
+      <button id="spinBtn">SPIN</button>
+
+      <!-- Withdraw -->
+      <div style="margin-top: 40px; font-size: 18px;">
+        Withdraw: <input type="number" id="withdrawAmt" min="1" step="1" placeholder="Amount" style="padding: 8px; width: 120px;">
+        <button onclick="withdraw()" style="padding: 10px 20px; background: #006400; color: white; border: none; border-radius: 8px; cursor: pointer;">Withdraw</button>
+      </div>
+    </div>
+
+    <!-- Graphs section (right) -->
+    <div class="graphs-section">
+      <div style="margin-bottom: 30px;">
+        <h2>RTP Swing (Cumulative % over spins)</h2>
+        <canvas id="rtpChart" style="background: #1a1a1a; border: 1px solid #444;"></canvas>
+      </div>
+
+      <div>
+        <h2>Bankroll Swing (Net win/loss per spin)</h2>
+        <canvas id="bankrollChart" style="background: #1a1a1a; border: 1px solid #444;"></canvas>
+      </div>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="resetGraphsBtn" style="padding: 10px 30px; background: #006400; color: white; border: none; border-radius: 8px; cursor: pointer;">
+          Reset Graphs
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const symbols = ['🟢', '🔴', '🟡', '🟣'];
+    const symbolHeight = 180;
+    const reels = [document.getElementById('r0'), document.getElementById('r1'), document.getElementById('r2')];
+    const strips = reels.map(r => r.querySelector('.reel-strip'));
+    const resultDiv = document.getElementById('result');
+    const spinBtn = document.getElementById('spinBtn');
+
+    function buildStrip(strip) {
+      strip.innerHTML = '';
+      for (let i = 0; i < 200; i++) {
+        const sym = symbols[i % symbols.length];
+        const div = document.createElement('div');
+        div.className = 'symbol';
+        div.textContent = sym;
+        strip.appendChild(div);
+      }
+    }
+    strips.forEach(buildStrip);
+
+    async function withdraw() {
+      const amt = parseFloat(document.getElementById('withdrawAmt').value);
+      if (!amt || amt <= 0) {
+        alert('Enter a valid amount');
+        return;
+      }
+
+      try {
+        const res = await fetch('/withdraw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: amt })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+        } else {
+          document.getElementById('balance').textContent = data.new_balance.toFixed(2);
+          alert(`Withdrew ${data.withdrawn.toFixed(2)} credits`);
+          document.getElementById('withdrawAmt').value = '';
+        }
+      } catch (err) {
+        alert('Withdraw failed');
+      }
+    }
+
+    let autoSpinInterval = null;
+
+document.getElementById('autoSpinBtn').addEventListener('click', () => {
+  if (autoSpinInterval) {
+    // Stop auto spin
+    clearInterval(autoSpinInterval);
+    autoSpinInterval = null;
+    document.getElementById('autoSpinStatus').textContent = 'Stopped';
+    document.getElementById('autoSpinBtn').textContent = 'Start Auto Spin';
+    return;
+  }
+
+  const count = parseInt(document.getElementById('autoSpinsCount').value);
+  if (count <= 0) {
+    alert('Select a number greater than 0 to start.');
+    return;
+  }
+
+  let spinsLeft = count;
+  document.getElementById('autoSpinStatus').textContent = `Auto spinning (${spinsLeft} left)`;
+  document.getElementById('autoSpinBtn').textContent = 'Stop Auto Spin';
+
+  autoSpinInterval = setInterval(async () => {
+    if (spinsLeft <= 0) {
+      clearInterval(autoSpinInterval);
+      autoSpinInterval = null;
+      document.getElementById('autoSpinStatus').textContent = 'Finished';
+      document.getElementById('autoSpinBtn').textContent = 'Start Auto Spin';
+      return;
+    }
+
+    // Only spin if button is enabled (no ongoing manual spin)
+    if (!spinBtn.disabled) {
+      spinBtn.click();
+      spinsLeft--;
+      document.getElementById('autoSpinStatus').textContent = `Auto spinning (${spinsLeft} left)`;
+    }
+  }, 4500);  // delay to let animation finish + buffer
+});
+
+    spinBtn.addEventListener('click', async () => {
+      spinBtn.disabled = true;
+      resultDiv.textContent = 'Spinning...';
+
+      const bet = parseInt(document.getElementById('betSelect').value);
+
+      try {
+        const res = await fetch(`/spin?bet=${bet}`);
+        const data = await res.json();
+
+        if (data.error) {
+          resultDiv.textContent = data.error;
+          spinBtn.disabled = false;
+          return;
+        }
+
+        const finalSymbols = data.reel.split(' ');
+        const multiplier = data.multiplier;
+        const totalReturn = data.total_return;
+
+        const spinPromises = [];
+        const spinTimes = [2500, 3200, 4000];
+
+        for (let i = 0; i < 3; i++) {
+          const strip = strips[i];
+          const targetSym = finalSymbols[i];
+
+          const positions = [];
+          for (let j = 60; j < 160; j++) {
+            if (strip.children[j].textContent === targetSym) {
+              positions.push(j);
+            }
+          }
+          if (positions.length === 0) {
+            positions.push(100);
+          }
+          const targetIndex = positions[Math.floor(Math.random() * positions.length)];
+
+          const finalY = - (targetIndex * symbolHeight) - (symbolHeight / 2);
+
+          const extraSpins = 10 + Math.floor(Math.random() * 6);
+          const extraDistance = extraSpins * (symbols.length * symbolHeight);
+          const totalDistance = extraDistance + (targetIndex * symbolHeight);
+
+          strip.parentElement.classList.add('spinning');
+
+          const anim = strip.animate([
+            { transform: `translateY(0px)` },
+            { transform: `translateY(-${totalDistance}px)` }
+          ], {
+            duration: spinTimes[i],
+            easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+            fill: 'forwards'
+          });
+
+          spinPromises.push(new Promise(resolve => {
+            anim.onfinish = () => {
+              setTimeout(() => {
+                strip.style.transition = 'none';
+                strip.style.transform = `translateY(${finalY}px)`;
+                strip.style.marginTop = '0px';
+                strip.style.marginBottom = '0px';
+                strip.style.padding = '0';
+                strip.style.top = '0px';
+                strip.style.left = '0px';
+                strip.style.bottom = 'auto';
+                strip.parentElement.style.padding = '0';
+                strip.parentElement.style.margin = '0';
+                strip.parentElement.style.overflow = 'hidden';
+                strip.parentElement.style.height = '180px';
+                void strip.offsetWidth;
+
+                const landedIndex = Math.round(-finalY / symbolHeight);
+                const landedSym = strip.children[landedIndex]?.textContent || 'unknown';
+                console.log(`Reel ${i}: Target = ${targetSym} (index ${targetIndex}) | Calculated landed index = ${landedIndex} | Symbol at that index = ${landedSym} | finalY = ${finalY}`);
+
+                strip.parentElement.classList.remove('spinning');
+                resolve();
+              }, 50);
+            };
+          }));
+        }
+
+        await Promise.all(spinPromises);
+
+        // Graphs code here (your existing graph plotting)
+        if (data.spin_history && data.spin_history.length > 0) {
+          const history = data.spin_history;
+          const spins = history.length;
+          const labels = Array.from({length: spins}, (_, i) => `Spin ${i+1}`);
+
+          // RTP cumulative
+let cumWagered = 0;
+let cumReturned = 0;
+const rtpData = history.map(spin => {
+  cumWagered += spin.bet;
+  cumReturned += spin.total_return;
+  return cumWagered > 0 ? (cumReturned / cumWagered) * 100 : 0;
+});
+
+// Find min/max RTP in data for dynamic scaling (add some padding)
+const minRtp = Math.min(...rtpData, 0);
+const maxRtp = Math.max(...rtpData, 100);
+const yMin = Math.max(0, minRtp - 10);  // slight padding below lowest
+const yMax = Math.min(300, maxRtp + 20); // slight padding above highest
+
+const ctxRtp = document.getElementById('rtpChart').getContext('2d');
+if (window.rtpChart && typeof window.rtpChart.destroy === 'function') {
+  window.rtpChart.destroy();
+}
+window.rtpChart = new Chart(ctxRtp, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: 'RTP %',
+      data: rtpData,
+      borderColor: '#ff4500',
+      backgroundColor: 'rgba(255,69,0,0.2)',
+      fill: true,
+      tension: 0.1
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: false,
+        min: yMin,
+        max: yMax,
+        title: { display: true, text: 'RTP %' }
+      }
+    }
+  }
+});
+
+          let currentBankroll = data.new_balance - history[spins-1].win_loss;
+          const bankrollData = history.map(spin => {
+            currentBankroll += spin.win_loss;
+            return currentBankroll;
+          });
+
+          const ctxBankroll = document.getElementById('bankrollChart').getContext('2d');
+          if (window.bankrollChart && typeof window.bankrollChart.destroy === 'function') {
+            window.bankrollChart.destroy();
+          }
+          window.bankrollChart = new Chart(ctxBankroll, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Bankroll',
+                data: bankrollData,
+                borderColor: '#00ff00',
+                backgroundColor: 'rgba(0,255,0,0.2)',
+                fill: true,
+                tension: 0.1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { title: { display: true, text: 'Bankroll' } }
+              }
+            }
+          });
+        }
+
+        document.getElementById('balance').textContent = data.new_balance.toFixed(2);
+        resultDiv.textContent = multiplier > 0 
+          ? `WIN ${totalReturn.toFixed(2)} (x${multiplier}) !` 
+          : `Loss -${bet.toFixed(2)}`;
+        resultDiv.style.color = multiplier > 0 ? '#ffea00' : '#fff';
+
+      } catch (err) {
+        resultDiv.textContent = 'Error - try again';
+        console.error(err);
+      }
+
+      spinBtn.disabled = false;
+    });
+
+    // Reset Graphs button
+    document.getElementById('resetGraphsBtn').addEventListener('click', () => {
+      if (!confirm('Reset graphs? This clears spin history for this session only.')) return;
+
+      if (window.rtpChart && typeof window.rtpChart.destroy === 'function') {
+        window.rtpChart.destroy();
+        window.rtpChart = null;
+      }
+      if (window.bankrollChart && typeof window.bankrollChart.destroy === 'function') {
+        window.bankrollChart.destroy();
+        window.bankrollChart = null;
+      }
+
+      const rtpCtx = document.getElementById('rtpChart').getContext('2d');
+      rtpCtx.clearRect(0, 0, rtpCtx.canvas.width, rtpCtx.canvas.height);
+      const bankrollCtx = document.getElementById('bankrollChart').getContext('2d');
+      bankrollCtx.clearRect(0, 0, bankrollCtx.canvas.width, bankrollCtx.canvas.height);
+
+      alert('Graphs reset! Spin again to see new data.');
+    });
+  </script>
+</body>
+</html>

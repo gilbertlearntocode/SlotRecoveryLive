@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head><title>House View</title></head>
+<body style="background:#111;color:#fff;font-family:Arial;padding:20px;">
+  <h1>House View Dashboard</h1>
+  <p>Total House Profit: {{ total_house_profit|round(2) }} credits</p>
+  <h2>Players</h2>
+  <table border="1" style="border-collapse:collapse;width:80%;margin:auto;">
+    <tr><th>Username</th><th>Balance</th></tr>
+    {% for p in players %}
+    <tr><td>{{ p['username'] }}</td><td>{{ p['balance']|round(2) }}</td></tr>
+    {% endfor %}
+  </table>
+  <br><a href="/logout" style="color:#ff4500;">Logout</a>
+  <!-- ... existing table ... -->
+
+<br>
+<button onclick="resetProfit()" style="background:#ff4500; color:white; padding:10px 20px; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
+  Reset House Profit to 0
+</button>
+
+<script>
+function resetProfit() {
+  if (!confirm('Reset ALL wagered/returned totals to 0? Keeps balances, starts profit fresh!')) return;
+
+  fetch('/admin/reset_profit', {
+    method: 'POST',
+    credentials: 'same-origin',  // sends cookies/session - key line
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.text().then(text => { throw new Error(`Server error: ${res.status} - ${text.substring(0, 100)}...`); });
+    }
+    return res.json();
+  })
+  .then(data => {
+    if (data.success) {
+      alert('House profit reset successfully');
+      location.reload();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  })
+  .catch(err => alert('Failed: ' + err.message));
+}
+</script>
+
+
+
+</body>
+</html>

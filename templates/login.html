@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Recovery Machine</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      margin-bottom: 40px;
+      font-size: 36px;
+      color: #ff4500;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    input[type="text"] {
+      padding: 15px;
+      font-size: 20px;
+      width: 320px;
+      margin-bottom: 20px;
+      border: 2px solid #444;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    input[type="text"]:focus {
+      border-color: #ff4500;
+      outline: none;
+    }
+    button {
+      padding: 15px 60px;
+      font-size: 22px;
+      background: #ff4500;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ff6500;
+    }
+    p {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to the Recovery Machine</h1>
+
+  <p style="color: #ff4500; max-width: 500px; margin: 20px auto;">This is a simulation tool for education/recovery. No real money involved. Gambling is rigged — this shows you why.</p>
+  <form method="POST" action="/login">
+    <input type="text" name="username" placeholder="Enter your username" required autofocus>
+    <button type="submit">Play Now</button>
+  </form>
+  <p>New users start with 10,000 credits automatically.</p>
+</body>
+</html>
