@@ -26,10 +26,9 @@ conn.close()
 
 # Tuned ~95-96% RTP
 SYMBOLS = ['🟢', '🔴', '🟡', '🟣']
-WEIGHTS = [60, 20, 7, .5]
-PAYOUTS = {0: 2.55, 1: 8, 2: 16, 3: 888}
-MIXED_LOW = 0.66
-MIXED_PURPLE = 1.49
+WEIGHTS = [40, 20, 10, 1]
+PAYOUTS = {0: 4, 1: 8, 2: 16, 3: 888}
+MIXED_PURPLE = 10
 
 def spin():
     return [random.choices(range(4), weights=WEIGHTS)[0] for _ in range(3)]
@@ -37,10 +36,19 @@ def spin():
 def get_payout(reel):
     if reel[0] == reel[1] == reel[2]:
         return PAYOUTS[reel[0]]
-    if 3 in reel:
-        return MIXED_PURPLE
-    if sorted(reel) == [0, 1, 2]:
-        return MIXED_LOW
+
+    # Mixed purple: exactly two matching (any color) + one purple
+    counts = {}
+    for s in reel:
+        counts[s] = counts.get(s, 0) + 1
+
+    if counts.get(3, 0) == 1:  # exactly one purple
+        # Check if the other two are the same
+        non_purple = [s for s in reel if s != 3]
+        if len(non_purple) == 2 and non_purple[0] == non_purple[1]:
+            return MIXED_PURPLE
+
+    # No mixed low anymore — return 0 for one each green/red/yellow
     return 0
 
 @app.before_request
