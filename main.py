@@ -26,7 +26,7 @@ conn.close()
 
 # Tuned ~95-96% RTP
 SYMBOLS = ['🟢', '🔴', '🟡', '🟣']
-WEIGHTS = [10, 5, 2, .3]
+WEIGHTS = [5, 2.5, 1.25, .3]
 PAYOUTS = {0: 4, 1: 8, 2: 16, 3: 888}
 MIXED_PURPLE = 10
 
